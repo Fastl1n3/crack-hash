@@ -1,0 +1,5 @@
+application:
+  manager-url: ${MANAGER_URL}
+
+server:
+  port: ${SERVER_PORT}

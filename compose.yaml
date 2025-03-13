@@ -1,0 +1,69 @@
+services:
+  manager:
+    build:
+      context: .
+      dockerfile: ./manager/Dockerfile
+    container_name: manager
+    environment:
+      - TIMEOUT=60000
+      - SCHEDULER_DELAY=500
+      - SERVER_PORT=8081
+      - WORKER_URLS=http://worker-1:8082,http://worker-2:8083,http://worker-3:8084
+      - MAX_IN_PROGRESS_TASKS=1
+    ports:
+      - "8081:8081"
+    networks:
+      - crack-hash-net
+
+  worker:
+    build:
+      context: .
+      dockerfile: ./worker/Dockerfile
+    image: crack-hash-worker:latest
+    container_name: worker-build
+
+  worker-1:
+    image: crack-hash-worker:latest
+    container_name: worker-1
+    environment:
+      - SERVER_PORT=8082
+      - MANAGER_URL=http://manager:8081
+    ports:
+      - "8082:8082"
+    networks:
+      - crack-hash-net
+    depends_on:
+      - worker
+    restart: always
+
+  worker-2:
+    image: crack-hash-worker:latest
+    container_name: worker-2
+    environment:
+      - SERVER_PORT=8083
+      - MANAGER_URL=http://manager:8081
+    ports:
+      - "8083:8083"
+    networks:
+      - crack-hash-net
+    depends_on:
+      - worker
+    restart: always
+
+  worker-3:
+    image: crack-hash-worker:latest
+    container_name: worker-3
+    environment:
+      - SERVER_PORT=8084
+      - MANAGER_URL=http://manager:8081
+    ports:
+      - "8084:8084"
+    networks:
+      - crack-hash-net
+    depends_on:
+      - worker
+    restart: always
+
+networks:
+  crack-hash-net:
+    driver: bridge
