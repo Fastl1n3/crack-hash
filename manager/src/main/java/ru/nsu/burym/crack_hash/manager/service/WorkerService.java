@@ -10,6 +10,8 @@ import ru.nsu.burym.crack_hash.manager.model.TaskInfo;
 import ru.nsu.burym.crack_hash.model.generated.CrackHashManagerRequest;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -41,5 +43,22 @@ public class WorkerService {
 
     public int getNumWorkers() {
         return appContext.getWorkerUrls().size();
+    }
+
+    public int getProcessedPercent(final TaskInfo taskInfo) {
+        final UUID requestId = taskInfo.getRequestId();
+        long processedWordsNum = 0;
+        for (final String url : appContext.getWorkerUrls()) {
+            final String path = url + "/internal/api/worker/hash/crack/task/percent?requestId={requestId}";
+            processedWordsNum += Optional.ofNullable(restTemplate.getForObject(path, Long.class, requestId))
+                    .orElseThrow();
+        }
+        final int alphabetSize = appContext.getAlphabet().length();
+        final int maxLen = taskInfo.getMaxLength();
+        final long totalWords = (long) (Math.pow(alphabetSize, maxLen + 1) - alphabetSize) / (alphabetSize - 1);
+
+        log.info("processedWordsNum {}", processedWordsNum);
+        log.info("totalWords {}", totalWords);
+        return (int) (processedWordsNum * 100 / totalWords);
     }
 }

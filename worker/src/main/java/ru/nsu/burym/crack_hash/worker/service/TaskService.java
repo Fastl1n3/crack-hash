@@ -11,6 +11,8 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Stream;
@@ -19,11 +21,11 @@ import java.util.stream.Stream;
 @Service
 public class TaskService {
 
-    //static final int NUM_THREADS = Math.min(8, Runtime.getRuntime().availableProcessors());
-
     private final ManagerService managerService;
 
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
+
+    private final Map<String, Long> numProcessedWords = new ConcurrentHashMap<>();
 
     @Autowired
     public TaskService(final ManagerService managerService) {
@@ -68,7 +70,10 @@ public class TaskService {
                     .skip(startIdx)
                     .limit(endIdx - startIdx)
                     .map(list -> String.join("", list))
-                    .filter(word -> md5Hash(word).equals(hash))
+                    .filter(word -> {
+                        numProcessedWords.compute(requestId, (key, val) -> val == null ? 1 : val + 1);
+                        return md5Hash(word).equals(hash);
+                    })
                     .toList();
             log.info("worker {}: words was computed: {}", partNumber, words);
             managerService.sendResult(requestId, partNumber, words);
@@ -96,5 +101,9 @@ public class TaskService {
         executorService.shutdownNow();
     }
 
-
+    public long getProcessedWordsNum(final String requestId) {
+        final long a = numProcessedWords.getOrDefault(requestId, 0L);
+        log.info("sending processed words num: {}", a);
+        return a;
+    }
 }

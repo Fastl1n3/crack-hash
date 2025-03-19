@@ -52,7 +52,8 @@ public class CrackHashService {
         tasks.computeIfPresent(uuid, (k, v) -> {
                     v.incrementFinishedWorkers();
                     v.getCrackedWords().addAll(words);
-                    if (v.getStatus() == Status.IN_PROGRESS && v.getFinishedWorkersNum() == workerService.getNumWorkers()) {
+                    if (v.getStatus() == Status.IN_PROGRESS &&
+                            v.getFinishedWorkersNum() == workerService.getNumWorkers()) {
                         v.setStatus(Status.READY);
                         log.info("task is ready: {}, {}", uuid, v.getCrackedWords());
                     }
@@ -66,6 +67,8 @@ public class CrackHashService {
             throw new IllegalArgumentException("requestId is undefined");
         }
         final TaskInfo taskInfo = tasks.get(requestId);
-        return new StatusResponse(taskInfo.getStatus(), taskInfo.getCrackedWords());
+        final int percent = workerService.getProcessedPercent(taskInfo);
+        log.info("PERCENT {}", percent);
+        return new StatusResponse(taskInfo.getStatus(), taskInfo.getCrackedWords(), percent);
     }
 }
