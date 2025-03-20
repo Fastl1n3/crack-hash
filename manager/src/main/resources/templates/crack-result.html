@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <title>Crack Result</title>
+</head>
+<body>
+<h1>Crack Result</h1>
+<p>Your request ID: <span th:text="${requestId}"></span></p>
+<a href="/hash/status?requestId=" th:href="@{/hash/status(requestId=${requestId})}">Check Status</a>
+</body>
+</html>

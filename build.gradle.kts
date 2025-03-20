@@ -34,16 +34,18 @@ subprojects {
 	dependencies {
 		implementation("org.springframework.boot:spring-boot-starter-web")
 		implementation("org.springframework.boot:spring-boot-starter-webflux")
+		implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
+		implementation("jakarta.xml.bind:jakarta.xml.bind-api:4.0.0")
+		implementation("org.glassfish.jaxb:jaxb-runtime:4.0.0")
+		implementation("org.glassfish.jaxb:jaxb-xjc:4.0.0")
+
 		compileOnly("org.projectlombok:lombok")
-		//developmentOnly("org.springframework.boot:spring-boot-docker-compose")
 		annotationProcessor("org.projectlombok:lombok")
 		testImplementation("org.springframework.boot:spring-boot-starter-test")
 		testImplementation("io.projectreactor:reactor-test")
 		testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
-		implementation("jakarta.xml.bind:jakarta.xml.bind-api:4.0.0")
-		implementation("org.glassfish.jaxb:jaxb-runtime:4.0.0")
-		implementation("org.glassfish.jaxb:jaxb-xjc:4.0.0")
+
 	}
 }
 //tasks.named<org.springframework.boot.gradle.tasks.bundling.BootJar>("bootJar") {

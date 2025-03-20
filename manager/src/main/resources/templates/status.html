@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Status</title>
+</head>
+<body>
+<h1>Status</h1>
+<p th:if="${error}" th:text="${error}" style="color:red;"></p>
+<div th:if="${statusResponse}">
+    <p>Status: <span th:text="${statusResponse.status}"></span></p>
+    <p>Progress: <span th:text="${statusResponse.progress} + '%' "></span></p>
+    <p>Data: <span th:text="${statusResponse.data}"></span></p>
+</div>
+<a href="/hash/crack">Back</a>
+</body>
+</html>
