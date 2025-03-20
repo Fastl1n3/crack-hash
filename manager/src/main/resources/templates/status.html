@@ -9,7 +9,10 @@
 <div th:if="${statusResponse}">
     <p>Status: <span th:text="${statusResponse.status}"></span></p>
     <p>Progress: <span th:text="${statusResponse.progress} + '%' "></span></p>
-    <p>Data: <span th:text="${statusResponse.data}"></span></p>
+    <p>Answer:</p>
+    <ul>
+        <li th:each="item : ${statusResponse.data}" th:text="${item}"></li>
+    </ul>
 </div>
 <a href="/hash/crack">Back</a>
 </body>
