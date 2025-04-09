@@ -10,6 +10,8 @@ version = "0.0.1-SNAPSHOT"
 
 dependencies {
     implementation(project(":generated-model"))
+    implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
+    implementation("org.springframework.boot:spring-boot-starter-data-mongodb")
     testImplementation(platform("org.junit:junit-bom:5.10.0"))
     testImplementation("org.junit.jupiter:junit-jupiter")
 }

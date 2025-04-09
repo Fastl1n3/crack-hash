@@ -28,7 +28,7 @@ public class TimeoutTracker {
 
     @Scheduled(fixedDelayString = "${application.scheduler-delay}")
     public void checkTimeout() {
-        final Collection<TaskInfo> taskInfos = crackHashService.getTasks().values();
+        final Collection<TaskInfo> taskInfos = crackHashService.getTasks();
         for (final TaskInfo taskInfo : taskInfos) {
             final long spentTimeMs = System.currentTimeMillis() - taskInfo.getStartTime();
             if (taskInfo.getStatus() == Status.IN_PROGRESS && spentTimeMs > appContext.getTimeout()) {

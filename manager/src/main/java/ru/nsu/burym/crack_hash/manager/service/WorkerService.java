@@ -7,6 +7,7 @@ import org.springframework.web.client.RestTemplate;
 import ru.nsu.burym.crack_hash.manager.AppContext;
 import ru.nsu.burym.crack_hash.manager.mapper.ManagerRequestMapper;
 import ru.nsu.burym.crack_hash.manager.model.TaskInfo;
+import ru.nsu.burym.crack_hash.manager.service.rabbit.TaskPublisherService;
 import ru.nsu.burym.crack_hash.model.generated.CrackHashManagerRequest;
 
 import java.util.List;
@@ -20,9 +21,12 @@ public class WorkerService {
 
     private final RestTemplate restTemplate;
 
+    private final TaskPublisherService taskPublisherService;
+
     @Autowired
-    public WorkerService(final AppContext appContext) {
+    public WorkerService(final AppContext appContext, final TaskPublisherService taskPublisherService) {
         this.appContext = appContext;
+        this.taskPublisherService = taskPublisherService;
         restTemplate = new RestTemplate();
     }
 
@@ -33,11 +37,7 @@ public class WorkerService {
         for (int i = 0; i < workersNum; i++) {
             final CrackHashManagerRequest crackHashManagerRequest =
                     ManagerRequestMapper.map(taskInfo, appContext.getAlphabet(), i, workersNum);
-
-            final String workerUrl = workerUrls.get(i);
-            final String response = restTemplate.postForObject(workerUrl + "/internal/api/worker/hash/crack/task",
-                    crackHashManagerRequest, String.class);
-            log.info("Response from worker {}: {}", i, response);
+            taskPublisherService.publish(crackHashManagerRequest);
         }
     }
 
@@ -45,20 +45,25 @@ public class WorkerService {
         return appContext.getWorkerUrls().size();
     }
 
-    public int getProcessedPercent(final TaskInfo taskInfo) {
-        final UUID requestId = taskInfo.getRequestId();
+    public int getProcessedPercent(final UUID requestId, final int maxLen) {
         long processedWordsNum = 0;
         for (final String url : appContext.getWorkerUrls()) {
             final String path = url + "/internal/api/worker/hash/crack/task/percent?requestId={requestId}";
-            processedWordsNum += Optional.ofNullable(restTemplate.getForObject(path, Long.class, requestId))
-                    .orElseThrow();
+            long wordsNum = 0;
+            try {
+                wordsNum = Optional.ofNullable(restTemplate.getForObject(path, Long.class, requestId))
+                        .orElse(0L);
+            } catch (final Exception e) {
+                log.error("error with url {}:", url, e);
+            }
+            processedWordsNum += wordsNum;
         }
         final int alphabetSize = appContext.getAlphabet().length();
-        final int maxLen = taskInfo.getMaxLength();
         final long totalWords = (long) (Math.pow(alphabetSize, maxLen + 1) - alphabetSize) / (alphabetSize - 1);
 
         log.info("processedWordsNum {}", processedWordsNum);
         log.info("totalWords {}", totalWords);
-        return (int) (processedWordsNum * 100 / totalWords);
+        final long percent = processedWordsNum * 100 / totalWords;
+        return percent > 100 ? 100 : (int) percent;
     }
 }

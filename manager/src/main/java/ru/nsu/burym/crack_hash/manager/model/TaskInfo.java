@@ -1,21 +1,30 @@
 package ru.nsu.burym.crack_hash.manager.model;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+@AllArgsConstructor
 @Getter
+@Setter
+@NoArgsConstructor
+@Document
 public class TaskInfo {
-    private final String hash;
-    private final int maxLength;
-    private final UUID requestId;
-    private final List<String> crackedWords;
-    private final long startTime;
+    @Id
+    private UUID requestId;
 
-    @Setter
+    private String hash;
+    private int maxLength;
+    private List<String> crackedWords;
+    private long startTime;
+
     private Status status;
     private int finishedWorkersNum;
 

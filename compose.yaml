@@ -1,19 +1,122 @@
 services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - crack-hash-net
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+  mongodb-1:
+    image: mongo:latest
+    container_name: mongodb-1
+    restart: always
+    command:
+      - /bin/sh
+      - -c
+      - |
+        chmod 400 /etc/mongo-keyfile
+        chown 999:999 /etc/mongo-keyfile
+        mongod --replSet rs0 --keyFile /etc/mongo-keyfile --bind_ip_all
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=admin
+      - MONGO_INITDB_DATABASE=tasksdb
+    ports:
+      - "27017:27017"
+    networks:
+      - crack-hash-net
+    volumes:
+      - ./mongo-keyfile:/etc/mongo-keyfile
+      - mongodb_data_1:/data/db
+
+  mongodb-2:
+    image: mongo:latest
+    container_name: mongodb-2
+    restart: always
+    command:
+      - /bin/sh
+      - -c
+      - |
+        chmod 400 /etc/mongo-keyfile
+        chown 999:999 /etc/mongo-keyfile
+        mongod --replSet rs0 --keyFile /etc/mongo-keyfile --bind_ip_all
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=admin
+      - MONGO_INITDB_DATABASE=tasksdb
+    ports:
+      - "27018:27017"
+    networks:
+      - crack-hash-net
+    volumes:
+      - ./mongo-keyfile:/etc/mongo-keyfile
+      - mongodb_data_2:/data/db
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js
+
+  mongodb-3:
+    image: mongo:latest
+    container_name: mongodb-3
+    restart: always
+    command:
+      - /bin/sh
+      - -c
+      - |
+        chmod 400 /etc/mongo-keyfile
+        chown 999:999 /etc/mongo-keyfile
+        mongod --replSet rs0 --keyFile /etc/mongo-keyfile --bind_ip_all
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=admin
+      - MONGO_INITDB_DATABASE=tasksdb
+    ports:
+      - "27019:27017"
+    networks:
+      - crack-hash-net
+    volumes:
+      - ./mongo-keyfile:/etc/mongo-keyfile
+      - mongodb_data_3:/data/db
+
   manager:
     build:
       context: .
       dockerfile: ./manager/Dockerfile
     container_name: manager
     environment:
-      - TIMEOUT=60000
+      - TIMEOUT=120000
       - SCHEDULER_DELAY=500
       - SERVER_PORT=8081
       - WORKER_URLS=http://worker-1:8082,http://worker-2:8083,http://worker-3:8084
-      - MAX_IN_PROGRESS_TASKS=1
+      - MAX_IN_PROGRESS_TASKS=2
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=admin
+      - MONGO_INITDB_DATABASE=tasksdb
+      - MONGO_URI=mongodb://admin:admin@mongodb-1:27017,mongodb-2:27017,mongodb-3:27017/tasksdb?replicaSet=rs0&authSource=admin
+      - RABBITMQ_TASKS_EXCHANGE=execution-tasks-exchange
+      - RABBITMQ_TASKS_QUEUE=execution-tasks-queue
+      - RABBITMQ_TASKS_KEY=execution-tasks-key
+      - RABBITMQ_RESULT_EXCHANGE=result-tasks-exchange
+      - RABBITMQ_RESULT_QUEUE=result-tasks-queue
+      - RABBITMQ_RESULT_KEY=result-key
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASS=guest
     ports:
       - "8081:8081"
     networks:
       - crack-hash-net
+    depends_on:
+      - rabbitmq
+      - mongodb-1
+      - mongodb-2
+      - mongodb-3
 
   worker:
     build:
@@ -28,11 +131,22 @@ services:
     environment:
       - SERVER_PORT=8082
       - MANAGER_URL=http://manager:8081
+      - RABBITMQ_TASKS_EXCHANGE=execution-tasks-exchange
+      - RABBITMQ_TASKS_QUEUE=execution-tasks-queue
+      - RABBITMQ_TASKS_KEY=execution-tasks-key
+      - RABBITMQ_RESULT_EXCHANGE=result-tasks-exchange
+      - RABBITMQ_RESULT_QUEUE=result-tasks-queue
+      - RABBITMQ_RESULT_KEY=result-key
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASS=guest
     ports:
       - "8082:8082"
     networks:
       - crack-hash-net
     depends_on:
+      - rabbitmq
       - worker
     restart: always
 
@@ -42,11 +156,22 @@ services:
     environment:
       - SERVER_PORT=8083
       - MANAGER_URL=http://manager:8081
+      - RABBITMQ_TASKS_EXCHANGE=execution-tasks-exchange
+      - RABBITMQ_TASKS_QUEUE=execution-tasks-queue
+      - RABBITMQ_TASKS_KEY=execution-tasks-key
+      - RABBITMQ_RESULT_EXCHANGE=result-tasks-exchange
+      - RABBITMQ_RESULT_QUEUE=result-tasks-queue
+      - RABBITMQ_RESULT_KEY=result-key
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASS=guest
     ports:
       - "8083:8083"
     networks:
       - crack-hash-net
     depends_on:
+      - rabbitmq
       - worker
     restart: always
 
@@ -56,14 +181,31 @@ services:
     environment:
       - SERVER_PORT=8084
       - MANAGER_URL=http://manager:8081
+      - RABBITMQ_TASKS_EXCHANGE=execution-tasks-exchange
+      - RABBITMQ_TASKS_QUEUE=execution-tasks-queue
+      - RABBITMQ_TASKS_KEY=execution-tasks-key
+      - RABBITMQ_RESULT_EXCHANGE=result-tasks-exchange
+      - RABBITMQ_RESULT_QUEUE=result-tasks-queue
+      - RABBITMQ_RESULT_KEY=result-key
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASS=guest
     ports:
       - "8084:8084"
     networks:
       - crack-hash-net
     depends_on:
+      - rabbitmq
       - worker
     restart: always
 
 networks:
   crack-hash-net:
     driver: bridge
+
+volumes:
+  mongodb_data_1:
+  mongodb_data_2:
+  mongodb_data_3:
+  rabbitmq_data:

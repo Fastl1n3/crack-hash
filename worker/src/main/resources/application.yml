@@ -3,3 +3,20 @@ application:
 
 server:
   port: ${SERVER_PORT}
+
+spring:
+  rabbitmq:
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT}
+    username: ${RABBITMQ_USER}
+    password: ${RABBITMQ_PASS}
+
+rabbitmq:
+  tasks:
+    exchange: ${RABBITMQ_TASKS_EXCHANGE}
+    queue: ${RABBITMQ_TASKS_QUEUE}
+    key: ${RABBITMQ_TASKS_KEY}
+  result:
+    exchange: ${RABBITMQ_RESULT_EXCHANGE}
+    queue: ${RABBITMQ_RESULT_QUEUE}
+    key: ${RABBITMQ_RESULT_KEY}

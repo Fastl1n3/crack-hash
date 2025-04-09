@@ -1,6 +1,5 @@
 package ru.nsu.burym.crack_hash.worker.service;
 
-import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.paukov.combinatorics3.Generator;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,11 +9,10 @@ import ru.nsu.burym.crack_hash.model.generated.CrackHashManagerRequest;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.stream.Stream;
 
 @Slf4j
@@ -23,9 +21,8 @@ public class TaskService {
 
     private final ManagerService managerService;
 
-    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
-
     private final Map<String, Long> numProcessedWords = new ConcurrentHashMap<>();
+    private final Map<String, HashSet<Long>> processedParts = new ConcurrentHashMap<>();
 
     @Autowired
     public TaskService(final ManagerService managerService) {
@@ -33,12 +30,27 @@ public class TaskService {
     }
 
     public void executeTask(final CrackHashManagerRequest crackHashManagerRequest) {
-        final Runnable task = createCrackTask(crackHashManagerRequest);
-        executorService.execute(task);
-        log.info("task was added: {}", crackHashManagerRequest.getRequestId());
+        final String requestId = crackHashManagerRequest.getRequestId();
+
+        if (isDuplicate(requestId, crackHashManagerRequest.getPartNumber())) {
+            return;
+        }
+
+        log.info("task was added: {}", requestId);
+        crackTask(crackHashManagerRequest);
+        log.info("task was done: {}", requestId);
+        processedParts.computeIfAbsent(requestId, k -> new HashSet<>())
+                .add((long) crackHashManagerRequest.getPartNumber());
     }
 
-    private Runnable createCrackTask(final CrackHashManagerRequest crackHashManagerRequest) {
+    private boolean isDuplicate(final String id, final long partNumber) {
+        if (processedParts.containsKey(id)) {
+            return processedParts.get(id).contains(partNumber);
+        }
+        return false;
+    }
+
+    private void crackTask(final CrackHashManagerRequest crackHashManagerRequest) {
         final List<String> alphabetSymbols = crackHashManagerRequest.getAlphabet().getSymbols();
         final int maxLen = crackHashManagerRequest.getMaxLength();
         final int partNumber = crackHashManagerRequest.getPartNumber();
@@ -46,39 +58,38 @@ public class TaskService {
         final String hash = crackHashManagerRequest.getHash();
         final String requestId = crackHashManagerRequest.getRequestId();
 
-        return () -> {
-            final int alphabetSize = alphabetSymbols.size();
-            final int totalSize = (int) (Math.pow(alphabetSize, maxLen + 1) - alphabetSize) / (alphabetSize - 1); // сумма геом. прогрессии
-            final int partSize = totalSize / partCount;
-            final int startIdx = partNumber * partSize;
-            final int endIdx = partCount == partNumber - 1 ? totalSize : (partNumber + 1) * partSize;
-            log.info(alphabetSymbols.toString());
-            log.info("total {}", totalSize);
-            log.info("partSize {}", partSize);
-            log.info("startIdx {}", startIdx);
-            log.info("endIdx {}", endIdx);
-            log.info("maxLen {}", maxLen);
+        final long alphabetSize = alphabetSymbols.size();
+        final long totalSize = (long) (Math.pow(alphabetSize, maxLen + 1) - alphabetSize) / (alphabetSize - 1); // сумма геом. прогрессии
+        final long partSize = totalSize / partCount;
+        final long startIdx = partNumber * partSize;
+        final long endIdx = partCount == partNumber - 1 ? totalSize : (partNumber + 1) * partSize;
+        log.info(alphabetSymbols.toString());
+        log.info("total {}", totalSize);
+        log.info("partSize {}", partSize);
+        log.info("startIdx {}", startIdx);
+        log.info("endIdx {}", endIdx);
+        log.info("maxLen {}", maxLen);
 
-            Stream<List<String>> permutationsStream = Stream.empty();
-            for (int len = 1; len <= maxLen; len++) {
-                permutationsStream = Stream.concat(permutationsStream,
-                        Generator.permutation(alphabetSymbols)
-                                .withRepetitions(len)
-                                .stream());
-            }
-            final List<String> words = permutationsStream
-                    .skip(startIdx)
-                    .limit(endIdx - startIdx)
-                    .map(list -> String.join("", list))
-                    .filter(word -> {
-                        numProcessedWords.compute(requestId, (key, val) -> val == null ? 1 : val + 1);
-                        return md5Hash(word).equals(hash);
-                    })
-                    .toList();
-            log.info("worker {}: words was computed: {}", partNumber, words);
-            managerService.sendResult(requestId, partNumber, words);
-        };
+        Stream<List<String>> permutationsStream = Stream.empty();
+        for (int len = 1; len <= maxLen; len++) {
+            permutationsStream = Stream.concat(permutationsStream,
+                    Generator.permutation(alphabetSymbols)
+                            .withRepetitions(len)
+                            .stream());
+        }
+        final List<String> words = permutationsStream
+                .skip(startIdx)
+                .limit(endIdx - startIdx)
+                .map(list -> String.join("", list))
+                .filter(word -> {
+                    numProcessedWords.compute(requestId, (key, val) -> val == null ? 1 : val + 1);
+                    return md5Hash(word).equals(hash);
+                })
+                .toList();
+        log.info("worker {}: words was computed: {}", partNumber, words);
+        managerService.sendResult(requestId, partNumber, words);
     }
+
 
     private String md5Hash(final String word) {
         final byte[] wordBytes = word.getBytes(StandardCharsets.UTF_8);
@@ -96,14 +107,9 @@ public class TaskService {
         }
     }
 
-    @PreDestroy
-    public void shutdown() {
-        executorService.shutdownNow();
-    }
-
     public long getProcessedWordsNum(final String requestId) {
         final long a = numProcessedWords.getOrDefault(requestId, 0L);
-        log.info("sending processed words num: {}", a);
+        log.info("sending processed words num: {} - {}", a, requestId);
         return a;
     }
 }

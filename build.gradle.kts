@@ -34,7 +34,8 @@ subprojects {
 	dependencies {
 		implementation("org.springframework.boot:spring-boot-starter-web")
 		implementation("org.springframework.boot:spring-boot-starter-webflux")
-		implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
+		implementation("org.springframework.boot:spring-boot-starter-amqp")
+		implementation("org.springframework:spring-oxm")
 		implementation("jakarta.xml.bind:jakarta.xml.bind-api:4.0.0")
 		implementation("org.glassfish.jaxb:jaxb-runtime:4.0.0")
 		implementation("org.glassfish.jaxb:jaxb-xjc:4.0.0")
