@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Hash Cracker</title>
+    <meta charset="UTF-8">
+</head>
+<body>
+<h1>Hash Cracker</h1>
+
+<!-- Crack Hash Form -->
+<form action="/hash/crack" method="post">
+    <label for="hash">Hash:</label>
+    <input type="text" id="hash" name="hash" required>
+    <br>
+    <label for="maxLength">Max Length:</label>
+    <input type="number" id="maxLength" name="maxLength" required>
+    <br>
+    <button type="submit">Crack</button>
+</form>
+
+<!-- Success Section -->
+<div th:if="${requestId}">
+    <h2>Request submitted</h2>
+    <p>Your request ID: <span th:text="${requestId}"></span></p>
+</div>
+
+<!-- Status Form -->
+<h2>Check Status</h2>
+<form action="/hash/status" method="get">
+    <label for="requestId">Request ID:</label>
+    <input type="text" id="requestId" name="requestId" required th:value="${requestId}">
+    <br>
+    <button type="submit">Check Status</button>
+</form>
+
+<!-- Status Result -->
+<div th:if="${statusResponse}">
+    <h3>Status Result</h3>
+    <p>Status: <span th:text="${statusResponse.status}"></span></p>
+    <p>Progress: <span th:text="${statusResponse.progress} + '%' "></span></p>
+    <p>Answer:</p>
+    <ul>
+        <li th:each="item : ${statusResponse.data}" th:text="${item}"></li>
+    </ul>
+</div>
+
+<!-- Error -->
+<p th:if="${error}" th:text="${error}" style="color:red;"></p>
+
+<!-- Auto-fill script AFTER elements are loaded -->
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    document.addEventListener("DOMContentLoaded", function () {
+        let requestId = /*[[${requestId}]]*/ '';
+        if (requestId) {
+            document.getElementById('requestId').value = requestId;
+        }
+    });
+    /*]]>*/
+</script>
+
+</body>
+</html>

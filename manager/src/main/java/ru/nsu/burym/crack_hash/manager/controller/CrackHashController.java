@@ -26,7 +26,7 @@ public class CrackHashController {
     @GetMapping("/crack")
     public String showCrackForm(final Model model) {
         model.addAttribute("crackHashRequest", new CrackHashRequest("", 0));
-        return "crack-form";
+        return "crack";
     }
 
     @PostMapping("/crack")
@@ -35,24 +35,23 @@ public class CrackHashController {
             final UUID requestId = crackHashService.createTask(crackHashRequest.hash(), crackHashRequest.maxLength());
             log.info("New request {}", requestId);
             model.addAttribute("requestId", requestId);
-            return "crack-result";
         } catch (final IllegalStateException e) {
             log.warn("request wasn't accepted: {}", e.getMessage());
             model.addAttribute("error", "Request wasn't accepted: " + e.getMessage());
-            return "crack-form";
         }
+        return "crack";
     }
 
     @GetMapping("/status")
     public String getStatus(@RequestParam final UUID requestId, final Model model) {
+        model.addAttribute("requestId", requestId);
         try {
             final StatusResponse statusResponse = crackHashService.getStatus(requestId);
             model.addAttribute("statusResponse", statusResponse);
-            return "status";
         } catch (final IllegalArgumentException e) {
             log.warn("Undef requestId {}", requestId);
             model.addAttribute("error", "Undefined requestId: " + requestId);
-            return "status";
         }
+        return "crack";
     }
 }
