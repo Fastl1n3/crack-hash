@@ -8,6 +8,9 @@
 - **ERROR** — произошла ошибка при выполнении.
 - **PARTIAL_READY** — один или несколько воркеров не вернули ответ.
 
+## Схема системы
+![alt text](https://github.com/Fastl1n3/crack-hash/blob/master/schema-drawio/crack-hash.png)
+
 ## Конфигурация и запуск
 
 ### Файл конфигурации
